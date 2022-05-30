@@ -1,12 +1,29 @@
 import { useState, useEffect, Fragment } from "react";
-import axios from "axios";
+import { Auth } from "aws-amplify";
 import { DeleteOutlined } from "@ant-design/icons";
+import axios from "axios";
+
+// API Gateway URL
+const API_URL = "https://srdyk9n78i.execute-api.eu-west-1.amazonaws.com/prod";
 
 const URL =
   "https://api.weatherapi.com/v1/current.json?key=5777c1b70f2f47cf8f4150736220802&q=London&aqi=no";
 
+const putData = async (data) => {
+  const auth = await Auth.currentSession();
+  let accessToken = auth.getIdToken().getJwtToken();
+  // https://axios-http.com/docs/post_example
+  const res = await axios.post("/postItems", data, {
+    baseURL: API_URL,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return res;
+};
+
 const Home = () => {
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(null);
   const [celcious, setCelcious] = useState(null);
   const [toDos, setToDos] = useState([]);
 
@@ -20,10 +37,33 @@ const Home = () => {
       }
     };
 
+    const loadUserData = async () => {
+      try {
+        const auth = await Auth.currentSession();
+        let accessToken = auth.getIdToken().getJwtToken();
+        // https://axios-http.com/docs/get_example
+        const { data } = await axios.get("/getItems", {
+          baseURL: API_URL,
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        if (Array.isArray(data)) {
+          console.log(data);
+          setToDos(data);
+        } else {
+          throw new Error("data unexpected format");
+        }
+      } catch (e) {
+        console.log("failed to load data", e);
+      }
+    };
+
+    loadUserData();
     getCelcious();
   }, []);
 
-  const sumbitHandler = (e) => {
+  const sumbitHandler = async (e) => {
     e.preventDefault();
     // do not add empty values or numbers
     if (inputValue !== "") {
@@ -31,8 +71,16 @@ const Home = () => {
 
       const updatedList = [...toDos, { item: inputValue, checked: false }];
 
-      setToDos(updatedList);
-      setInputValue("");
+      try {
+        const { status } = await putData(updatedList);
+        if (status === 200) {
+          setToDos(updatedList);
+          setInputValue("");
+        }
+      } catch (error) {
+        alert("Server issue, data cannot be backed");
+        console.log("error posting data", error);
+      }
     }
   };
 
@@ -41,20 +89,34 @@ const Home = () => {
     setInputValue(value);
   };
 
-  const handleDelete = async (e, i) => {
-    const updatedList = [...toDos];
-    updatedList.splice(i, 1);
-
-    setToDos(updatedList);
-  };
-
   const handleItemToggle = async (e, i) => {
     const checked = e.target.checked || !toDos[i].checked;
     // console.log("item clicked", e);
     const updatedList = [...toDos];
     updatedList[i] = { item: updatedList[i].item, checked };
+    try {
+      const { status } = await putData(updatedList);
+      if (status === 200) {
+        setToDos(updatedList);
+      }
+    } catch (error) {
+      alert("Server issue, data cannot be backed");
+      console.log("error toggling data", error);
+    }
+  };
 
-    setToDos(updatedList);
+  const handleDelete = async (e, i) => {
+    const updatedList = [...toDos];
+    updatedList.splice(i, 1);
+    try {
+      const { status } = await putData(updatedList);
+      if (status === 200) {
+        setToDos(updatedList);
+      }
+    } catch (error) {
+      alert("Server issue, data cannot be backed");
+      console.log("error deleting data", error);
+    }
   };
 
   return (
@@ -69,7 +131,7 @@ const Home = () => {
           marginRight: "34%",
         }}
       ></p>
-      <h3>Today's weather: {celcious || "?"}°C</h3>
+      <h3>Today's Temperature: {celcious || "?"}°C</h3>
 
       <div id="listContainer">
         <div id="checklist">
@@ -101,9 +163,9 @@ const Home = () => {
         <form onSubmit={sumbitHandler}>
           <input
             id="toDoInput"
-            value={inputValue}
+            value={inputValue || ""}
             onChange={handleInputChange}
-            placeholder="learn React"
+            placeholder="Learn React"
           ></input>
           <button onClick={sumbitHandler}>Add task</button>
         </form>

@@ -1,11 +1,12 @@
 import "./App.css";
 import "./CustomeStyle.scss";
 import Home from "./Components/HomePage";
+import { withAuthenticator, AmplifySignOut } from "@aws-amplify/ui-react";
 
 const App = () => {
   return (
     <div className="App">
-      {/* <AmplifySignOut /> */}
+      <AmplifySignOut />
       <Home></Home>
 
       {/* <Home></Home> */}
@@ -13,4 +14,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default withAuthenticator(App);
