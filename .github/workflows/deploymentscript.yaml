@@ -1,5 +1,5 @@
-on: 
-  push: 
+on:
+  push:
     branches:
       - main
 
@@ -7,7 +7,7 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
 
-    strps:
+    steps:
       - uses: actions/checkout@v2
 
       - uses: actions/setup-node@v2
@@ -15,15 +15,15 @@ jobs:
           node-version: "16"
           cache: "npm"
           cache-dependency-path: package-lock.json
-      - run: npm ci # runs and checks packages
-      # You'll need ./aws-exports for this
+      - run: npm ci
+      # you will need ./aws-exports for this
       # remove from gitignore and add them
-      - run: npm run build 
+      - run: npm run build
       # s3 read/write for sync
       - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.KEY }}
           aws-region: eu-west-1
-        -name: Copy files to the bucket with the AWS CLI
-          run: aws s3 sync ./build s3://frontenddeployment1993aws
+      - name: Copy files to the bucket with the AWS CLI
+        run: aws s3 sync ./build s3://frontenddeployment1993aws
