@@ -121,7 +121,7 @@ const Home = () => {
 
   return (
     <div>
-      <h1> Today's Agenda</h1>
+      <h1> :)</h1>
       <p
         style={{
           borderBottom: "1px solid grey",
